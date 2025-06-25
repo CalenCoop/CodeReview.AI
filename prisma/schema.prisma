@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model pull_requests {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String
+  github_url    String
+  repository_id String       @db.Uuid
+  repositories  repositories @relation(fields: [repository_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reviews       reviews[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model repositories {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  github_url    String?
+  user_id       String          @db.Uuid
+  pull_requests pull_requests[]
+  users         users           @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model reviews {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content         String
+  ai_analysis     String?
+  pull_request_id String        @db.Uuid
+  user_id         String        @db.Uuid
+  pull_requests   pull_requests @relation(fields: [pull_request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model users {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String         @unique
+  github_id    String?        @unique
+  repositories repositories[]
+  reviews      reviews[]
+}
