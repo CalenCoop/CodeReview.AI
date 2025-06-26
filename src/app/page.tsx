@@ -2,12 +2,37 @@
 import Image from "next/image";
 import React from "react";
 
+type GitType = {
+  full_name: string;
+  description: string;
+};
+
+//TESTING FOR AI CODE REVIEW
+
 export default function Home() {
-  const [gitForm, setGitForm] = React.useState<string>("");
+  const [gitUrl, setGitUrl] = React.useState<string>("");
+  const [gitData, setGitData] = React.useState<GitType | null>(null); //set type when we know what is coming back from gitfetch
+
+  async function handleGitFetch(url: string) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/vnd.github+json",
+        },
+        // body: JSON.stringify({ username: "Calen" }),
+      });
+      const data = await response.json();
+      console.log("data", data);
+      setGitData(data);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    console.log(gitForm);
+    handleGitFetch("https://api.github.com/repos/" + gitUrl);
+    console.log(gitUrl);
   }
 
   return (
@@ -18,12 +43,13 @@ export default function Home() {
           <form>
             <input
               type="text"
-              value={gitForm}
-              onChange={(e) => setGitForm(e.target.value)}
+              value={gitUrl}
+              onChange={(e) => setGitUrl(e.target.value)}
               placeholder="enter email here"
             />
             <button onClick={handleSubmit}>Submit</button>
           </form>
+          <h2>{gitData?.full_name}</h2>
         </div>
       </main>
     </div>
