@@ -28,10 +28,27 @@ export default function Home() {
       console.log(error);
     }
   }
+  function extractRepoPathFromUrl(url: string) {
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname !== "github.com") return null;
+      const splitUrl = parsed.pathname.split("/").filter(Boolean);
+      if (splitUrl.length >= 2) {
+        console.log("params are ", `${splitUrl[0]}/${splitUrl[1]}`);
+        return `${splitUrl[0]}/${splitUrl[1]}`;
+      }
+      return null;
+    } catch (error) {
+      console.log("error with extracting Repo from url", error);
+      return null;
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    handleGitFetch("https://api.github.com/repos/" + gitUrl);
+    const params = extractRepoPathFromUrl(gitUrl);
+
+    handleGitFetch(`/api/github/pulls?repo=${params}`);
     console.log(gitUrl);
   }
 
