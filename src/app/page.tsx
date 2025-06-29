@@ -1,17 +1,29 @@
 "use client";
+import Repo from "@/components/Repo";
+import { GitType } from "@/lib/types";
 import Image from "next/image";
 import React from "react";
 
-type GitType = {
-  full_name: string;
-  description: string;
+type PullRequestType = {
+  id: number;
+  number: number;
+  title: string;
+  body: string;
+  state: string;
+  html_url: string;
+  //maybe add diff url?
+  user: {
+    login: string;
+    avatar_url: string;
+    html_url: string;
+  };
+  created_at: string;
 };
-
-//TESTING FOR AI CODE REVIEW
 
 export default function Home() {
   const [gitUrl, setGitUrl] = React.useState<string>("");
   const [gitData, setGitData] = React.useState<GitType | null>(null); //set type when we know what is coming back from gitfetch
+  const [pullRequests, setPullRequests] = React.useState<PullRequestType[]>([]);
 
   async function handleGitFetch(url: string) {
     try {
@@ -23,7 +35,8 @@ export default function Home() {
       });
       const data = await response.json();
       console.log("data", data);
-      setGitData(data);
+      // setGitData(data);
+      setPullRequests(data.data);
     } catch (error) {
       console.log(error);
     }
@@ -49,25 +62,30 @@ export default function Home() {
     const params = extractRepoPathFromUrl(gitUrl);
 
     handleGitFetch(`/api/github/pulls?repo=${params}`);
-    console.log(gitUrl);
+    // console.log(gitUrl);
   }
+  // console.log("pull requests", pullRequests);
+  const repoElements = pullRequests.map((repo) => (
+    <Repo key={repo.id} data={repo} />
+  ));
 
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
         <h1>Hello World!</h1>
         <div className="form-container">
-          <form>
+          <form onSubmit={handleSubmit}>
             <input
               type="text"
               value={gitUrl}
               onChange={(e) => setGitUrl(e.target.value)}
               placeholder="enter email here"
             />
-            <button onClick={handleSubmit}>Submit</button>
+            <button type="submit">Submit</button>
           </form>
           <h2>{gitData?.full_name}</h2>
         </div>
+        <div className="repos">{repoElements}</div>
       </main>
     </div>
   );
