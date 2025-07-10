@@ -2,6 +2,8 @@
 import React, { useEffect } from "react";
 import { useParams } from "next/navigation";
 import { PullRequestType } from "@/lib/types";
+import DiffFile from "@/components/DiffFile";
+import { url } from "inspector";
 
 useParams;
 
@@ -10,6 +12,7 @@ export default function ReviewPage() {
     null
   );
   const [diff, setDiff] = React.useState<any>(""); //CHANGE TYPE
+  const [filter, setFilter] = React.useState<boolean>(true);
   const [loading, setLoading] = React.useState<boolean>(false);
 
   const params = useParams<{
@@ -22,7 +25,6 @@ export default function ReviewPage() {
       handleGitFetch(params.owner, params.repo, params.prId);
     }
   }, [params]);
-  console.log("loading", loading);
 
   //kind of redundant having the fetch code again -could make it a hook
   async function handleGitFetch(
@@ -46,14 +48,28 @@ export default function ReviewPage() {
     }
   }
 
-  const fileChunks = diff.split(/^diff --git /gm).filter(Boolean);
-  console.log("chunks", fileChunks);
+  const allChunks = diff.split(/^diff --git /gm).filter(Boolean);
+  // console.log("chunks", allChunks);
 
   const getFilename = (chunk: string) => {
     const match = chunk.match(/^a\/(.+?)\s+b\//m);
     return match ? match[1] : "Unknown file";
   };
+  const filteredChunks = allChunks.filter((chunk: any) => {
+    //CHANGE TYPE!!!!!
+    const filename = getFilename(chunk);
+    if (filter) {
+      return (
+        filename !== "Unknown file" &&
+        !filename.startsWith("node_modules/") &&
+        !filename.includes("package-lock.json")
+      );
+    } else {
+      return filename !== "Unknown file";
+    }
+  });
 
+  console.log("filter button", filter);
   const parseDiffLines = (chunk: string) => {
     const lines = chunk.split("\n");
     const classifiedLines = lines.map((line) => {
@@ -71,41 +87,35 @@ export default function ReviewPage() {
     return <h1>Loading....</h1>;
   }
 
+  const githubUrl: string = `https://github.com/${params.owner}/${params.repo}/pull/${params.prId}`;
+
+  const renderChunks = filteredChunks.map((chunk: string, index: number) => (
+    <DiffFile
+      key={index}
+      chunk={chunk}
+      index={index}
+      getFilename={getFilename}
+      parseDiffLines={parseDiffLines}
+    />
+  ));
+  // console.log("filtered chunks", filteredChunks);
+  // console.log("renderchunks", renderChunks);
+
   return (
     <div className="review-container">
       <h1>Review Page:</h1>
+
       <p>{pullRequest?.user.login}</p>
-
-      {fileChunks.map((chunk: string, index: number) => {
-        const filename = getFilename(chunk);
-        const lines = parseDiffLines(chunk);
-
-        return (
-          <div key={index} className="mb-8 border rounded">
-            <div className="bg-gray-200 font-mono px-4 py-2 font-semibold">
-              {filename}
-            </div>
-            <pre className="text-sm font-mono whitespace-pre-wrap px-4 py-2">
-              {lines.map((line, i) => (
-                <div
-                  key={i}
-                  className={
-                    line.type === "add"
-                      ? "text-green-600"
-                      : line.type === "remove"
-                      ? "text-red-600"
-                      : line.type === "hunk"
-                      ? "text-yellow-600 font-bold"
-                      : "text-gray-800"
-                  }
-                >
-                  {line.content}
-                </div>
-              ))}
-            </pre>
-          </div>
-        );
-      })}
+      <a
+        href={githubUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600"
+      >
+        Open PR in GitHub
+      </a>
+      <button onClick={() => setFilter((val) => !val)}>Show All Content</button>
+      {renderChunks}
     </div>
   );
 }
