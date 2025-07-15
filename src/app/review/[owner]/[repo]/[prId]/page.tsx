@@ -5,14 +5,13 @@ import { PullRequestType } from "@/lib/types";
 import DiffFile from "@/components/DiffFile";
 import { url } from "inspector";
 
-useParams;
-
 export default function ReviewPage() {
   const [pullRequest, setPullRequest] = React.useState<PullRequestType | null>(
     null
   );
   const [diff, setDiff] = React.useState<any>(""); //CHANGE TYPE
   const [filter, setFilter] = React.useState<boolean>(true);
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [loading, setLoading] = React.useState<boolean>(false);
 
   const params = useParams<{
@@ -55,8 +54,8 @@ export default function ReviewPage() {
     const match = chunk.match(/^a\/(.+?)\s+b\//m);
     return match ? match[1] : "Unknown file";
   };
-  const filteredChunks = allChunks.filter((chunk: any) => {
-    //CHANGE TYPE!!!!!
+
+  const filteredChunks = allChunks.filter((chunk: string) => {
     const filename = getFilename(chunk);
     if (filter) {
       return (
@@ -69,7 +68,27 @@ export default function ReviewPage() {
     }
   });
 
-  console.log("filter button", filter);
+  React.useEffect(() => {
+    toggleSelectAllChunks();
+  }, [diff]);
+
+  function toggleSelectAllChunks() {
+    if (filteredChunks.length !== selectedIds.size) {
+      const ids = allChunks
+        .map(getFilename)
+        .filter(
+          (filename: string) =>
+            filename !== "Unknown file" &&
+            !filename.startsWith("node_modules/") &&
+            !filename.includes("package-lock.json")
+        );
+      setSelectedIds(new Set(ids));
+    } else {
+      setSelectedIds(new Set());
+    }
+  }
+
+  // console.log("filter button", filter);
   const parseDiffLines = (chunk: string) => {
     const lines = chunk.split("\n");
     const classifiedLines = lines.map((line) => {
@@ -89,18 +108,33 @@ export default function ReviewPage() {
 
   const githubUrl: string = `https://github.com/${params.owner}/${params.repo}/pull/${params.prId}`;
 
-  const renderChunks = filteredChunks.map((chunk: string, index: number) => (
-    <DiffFile
-      key={index}
-      chunk={chunk}
-      index={index}
-      getFilename={getFilename}
-      parseDiffLines={parseDiffLines}
-    />
-  ));
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  const renderChunks = filteredChunks.map((chunk: string, index: number) => {
+    const id = getFilename(chunk);
+    return (
+      <DiffFile
+        key={index}
+        chunk={chunk}
+        index={index}
+        getFilename={getFilename}
+        parseDiffLines={parseDiffLines}
+        isSelected={selectedIds.has(id)}
+        onToggle={() => toggleSelected(id)}
+      />
+    );
+  });
   // console.log("filtered chunks", filteredChunks);
   // console.log("renderchunks", renderChunks);
+  console.log("selected ids", selectedIds);
 
+  console.log("filtered chunks", filteredChunks.length);
   return (
     <div className="review-container">
       <h1>Review Page:</h1>
@@ -115,6 +149,12 @@ export default function ReviewPage() {
         Open PR in GitHub
       </a>
       <button onClick={() => setFilter((val) => !val)}>Show All Content</button>
+      <button onClick={toggleSelectAllChunks}>
+        {" "}
+        {selectedIds.size === filteredChunks.length
+          ? "Deselect All"
+          : "Select all"}
+      </button>
       {renderChunks}
     </div>
   );

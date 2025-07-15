@@ -9,45 +9,56 @@ type DiffFileProps = {
   index: number;
   getFilename: (chunk: string) => string;
   parseDiffLines: (chunk: string) => Line[];
+  isSelected: boolean;
+  onToggle: () => void;
 };
 export default function DiffFile({
   chunk,
   index,
   getFilename,
   parseDiffLines,
+  onToggle,
+  isSelected,
 }: DiffFileProps) {
   const [previewOnly, setPreviewOnly] = React.useState(true);
   const filename = getFilename(chunk);
-  //   const [selectedFiles, setSelectedFiles] = React.useState<Set<string>>(
-  //     new Set(filename)
-  //   );
   const lines = parseDiffLines(chunk);
-  console.log(chunk);
+  //   console.log(chunk);
 
   const visableLines = previewOnly ? lines.slice(0, 10) : lines;
 
+  function getLineClass(type: string) {
+    switch (type) {
+      case "add":
+        return "text-green-600";
+      case "remove":
+        return "text-red-600";
+      case "hunk":
+        return "text-yellow-600 font-bold";
+      default:
+        return "text-gray-800";
+    }
+  }
+
   function renderLines(line: Line, i: number) {
     return (
-      <div
-        key={i}
-        className={
-          line.type === "add"
-            ? "text-green-600"
-            : line.type === "remove"
-            ? "text-red-600"
-            : line.type === "hunk"
-            ? "text-yellow-600 font-bold"
-            : "text-gray-800"
-        }
-      >
+      <div key={i} className={getLineClass(line.type)}>
         {line.content}
       </div>
     );
   }
   return (
-    <div key={index} className="mb-8 border rounded">
-      <div className="bg-gray-200 font-mono px-4 py-2 font-semibold flex justify-between">
+    <div className="mb-8 border rounded">
+      <label className="flex items-center space-x-2 cursor-pointer px-4 py-2">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={onToggle}
+          className="mr-2"
+        />
         {filename}
+      </label>
+      <div className="bg-gray-200 font-mono px-4 py-2 font-semibold flex justify-between">
         {lines.length > 10 && (
           <button className="" onClick={() => setPreviewOnly((val) => !val)}>
             {previewOnly ? (
