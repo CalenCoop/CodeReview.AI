@@ -9,9 +9,10 @@ export default function ReviewPage() {
   const [pullRequest, setPullRequest] = React.useState<PullRequestType | null>(
     null
   );
-  const [diff, setDiff] = React.useState<any>(""); //CHANGE TYPE
+  const [diff, setDiff] = React.useState<string>("");
   const [filter, setFilter] = React.useState<boolean>(true);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [aiResponse, setAiResponse] = React.useState<any>(null); //SET TYPE WHEN WE KNOW WHAT WERE GETTING BACK
   const [loading, setLoading] = React.useState<boolean>(false);
 
   const params = useParams<{
@@ -25,7 +26,7 @@ export default function ReviewPage() {
     }
   }, [params]);
 
-  //kind of redundant having the fetch code again -could make it a hook
+  //kind of redundant having the fetch code again - could make it a hook
   async function handleGitFetch(
     owner: string,
     repo: string,
@@ -102,10 +103,6 @@ export default function ReviewPage() {
     return classifiedLines;
   };
 
-  if (loading) {
-    return <h1>Loading....</h1>;
-  }
-
   const githubUrl: string = `https://github.com/${params.owner}/${params.repo}/pull/${params.prId}`;
 
   function toggleSelected(id: string) {
@@ -130,32 +127,64 @@ export default function ReviewPage() {
       />
     );
   });
+  // console.log("diff", diff);
   // console.log("filtered chunks", filteredChunks);
   // console.log("renderchunks", renderChunks);
-  console.log("selected ids", selectedIds);
+  // console.log("selected ids", selectedIds);
 
-  console.log("filtered chunks", filteredChunks.length);
+  // console.log("filtered chunks", filteredChunks.length);
+
+  const joinedFilteredChunks = filteredChunks
+    .filter((chunk) => selectedIds.has(getFilename(chunk)))
+    .join("\n");
+  console.log("filtered for api", joinedFilteredChunks);
+
+  async function AIFetch() {
+    try {
+      const response = await fetch("/api/ai/review", {
+        method: "POST",
+        headers: {
+          "Content-type": "application/json",
+        },
+        body: JSON.stringify({ diff: joinedFilteredChunks }),
+      });
+      const data = await response.json();
+      console.log("data", data);
+      setAiResponse(data);
+    } catch (error) {
+      console.log("error fetching AI response");
+    }
+  }
+
+  if (loading) {
+    return <h1>Loading....</h1>;
+  }
   return (
     <div className="review-container">
       <h1>Review Page:</h1>
-
+      <button onClick={AIFetch}>Submit for Review</button>
       <p>{pullRequest?.user.login}</p>
-      <a
-        href={githubUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-blue-600"
-      >
-        Open PR in GitHub
-      </a>
-      <button onClick={() => setFilter((val) => !val)}>Show All Content</button>
-      <button onClick={toggleSelectAllChunks}>
-        {" "}
-        {selectedIds.size === filteredChunks.length
-          ? "Deselect All"
-          : "Select all"}
-      </button>
-      {renderChunks}
+      <nav className="nav-container border-2 flex justify-around color-red-600">
+        <a
+          href={githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600"
+        >
+          Open PR in GitHub
+        </a>
+        <button onClick={() => setFilter((val) => !val)}>
+          Show All Content
+        </button>
+        <button onClick={toggleSelectAllChunks}>
+          <span className="">
+            {selectedIds.size === filteredChunks.length
+              ? "Deselect All"
+              : "Select all"}
+          </span>
+        </button>
+      </nav>
+      <div className="chunk-container">{renderChunks}</div>
     </div>
   );
 }

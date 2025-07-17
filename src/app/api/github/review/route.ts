@@ -24,8 +24,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-
-  //   return FetchGitHub(
-  //     `https://api.github.com/repos/${owner}/${repo}/pulls/${prId}.diff`
-  //   );
 }

@@ -49,25 +49,30 @@ export default function DiffFile({
   }
   return (
     <div className="mb-8 border rounded">
-      <label className="flex items-center space-x-2 cursor-pointer px-4 py-2">
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={onToggle}
-          className="mr-2"
-        />
-        {filename}
-      </label>
-      <div className="bg-gray-200 font-mono px-4 py-2 font-semibold flex justify-between">
-        {lines.length > 10 && (
-          <button className="" onClick={() => setPreviewOnly((val) => !val)}>
-            {previewOnly ? (
-              <ChevronDownIcon className="w-5 h-5 inline ml-1" />
-            ) : (
-              <ChevronUpIcon className="w-5 h-5 inline ml-1" />
-            )}
-          </button>
-        )}
+      <div className="chunk-title flex bg-gray-200 justify-between">
+        <label className="flex items-center space-x-2 cursor-pointer px-4 py-2 w-10/12">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={onToggle}
+            className="mr-2"
+          />
+          {filename}
+        </label>
+        <div className="font-mono px-4 py-2 font-semibold flex justify-end w-1/6">
+          {lines.length > 10 && (
+            <button
+              className="cursor-pointer"
+              onClick={() => setPreviewOnly((val) => !val)}
+            >
+              {previewOnly ? (
+                <ChevronDownIcon className="w-5 h-5 inline ml-1" />
+              ) : (
+                <ChevronUpIcon className="w-5 h-5 inline ml-1" />
+              )}
+            </button>
+          )}
+        </div>
       </div>
       <pre className="text-sm font-mono whitespace-pre-wrap px-4 py-2">
         {visableLines.map(renderLines)}
