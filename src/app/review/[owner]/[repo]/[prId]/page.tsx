@@ -134,10 +134,13 @@ export default function ReviewPage() {
 
   // console.log("filtered chunks", filteredChunks.length);
 
-  const joinedFilteredChunks = filteredChunks
-    .filter((chunk) => selectedIds.has(getFilename(chunk)))
-    .join("\n");
-  console.log("filtered for api", joinedFilteredChunks);
+  const joinedFilteredChunks = React.useMemo(() => {
+    return filteredChunks
+      .filter((chunk) => selectedIds.has(getFilename(chunk)))
+      .join("\n");
+  }, [filteredChunks, selectedIds]);
+
+  // console.log("filtered for api", joinedFilteredChunks);
 
   async function AIFetch() {
     try {
@@ -185,6 +188,7 @@ export default function ReviewPage() {
         </button>
       </nav>
       <div className="chunk-container">{renderChunks}</div>
+      <p>{aiResponse?.data}</p>
     </div>
   );
 }
