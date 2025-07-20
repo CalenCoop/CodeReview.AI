@@ -1,3 +1,4 @@
+import { AIFeedbackMap, AIFeedbackType } from "@/lib/types";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
@@ -11,7 +12,8 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: "system",
-          content: `You are a senior software engineer reviewing a GitHub pull request. You will receive a unified diff of one or more files. For each file, explain:
+          content: `You are a senior software engineer reviewing a GitHub pull request. You will receive a unified diff of one or more files. 
+          For each file, explain:
             - Potential bugs or regressions
             - Security issues
             - Opportunities to follow best practices or improve code clarity.
@@ -21,7 +23,20 @@ export async function POST(request: NextRequest) {
             - Needs changes  
             - Cannot determine (insufficient context)
 
-            Justify your decision clearly, based on the diff alone. Group your analysis by file first, then conclude with your recommendation.`,
+            Include a justification for your recommendation.
+            Respond ONLY with valid JSON in the following format:
+            {
+                "a/file1.ts": {
+                    "potential_bugs_or_regressions": ["Issue 1", "Issue 2"],
+                    "security_issues": ["Issue 1"],
+                    "best_practices": ["Suggestion 1"]
+                },
+                "a/file2.ts": {
+                    ...
+                },
+                "recommendation": "Needs changes",
+                "justification": "There are potential bugs and security concerns in file1.ts"
+            }`,
         },
         {
           role: "user",
@@ -31,10 +46,21 @@ export async function POST(request: NextRequest) {
       temperature: 0.3,
     });
     console.log("completion", completion);
-    // const aiResponse = JSON.parse(
-    //   completion.choices[0].message.content || "{}"
-    // );
-    const aiResponse = completion.choices[0].message.content;
+    const content = completion.choices[0].message.content;
+    if (!content) throw new Error("Missing content from OpenAI");
+
+    const aiResponse: AIFeedbackType = JSON.parse(content);
+    // if (aiResponse) {
+    //   try {
+    //     const parsed = JSON.parse(aiResponse);
+    //     return NextResponse.json({ data: parsed });
+    //   } catch (err) {
+    //     return NextResponse.json({
+    //       raw: aiResponse,
+    //       warning: "NON-JSON response, rendering fallback text",
+    //     });
+    //   }
+    // }
     console.log(aiResponse);
     return NextResponse.json({ data: aiResponse, diff: diff });
   } catch (error) {

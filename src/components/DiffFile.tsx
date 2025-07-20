@@ -1,5 +1,6 @@
 import React from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
+import { AIFeedbackMap, AIFeedbackPerFile } from "@/lib/types";
 type Line = {
   type: string;
   content: string;
@@ -11,6 +12,7 @@ type DiffFileProps = {
   parseDiffLines: (chunk: string) => Line[];
   isSelected: boolean;
   onToggle: () => void;
+  aiFeedback: AIFeedbackPerFile | undefined;
 };
 export default function DiffFile({
   chunk,
@@ -19,11 +21,12 @@ export default function DiffFile({
   parseDiffLines,
   onToggle,
   isSelected,
+  aiFeedback,
 }: DiffFileProps) {
   const [previewOnly, setPreviewOnly] = React.useState(true);
+  const [showFeedback, setShowFeedback] = React.useState(true);
   const filename = getFilename(chunk);
   const lines = parseDiffLines(chunk);
-  //   console.log(chunk);
 
   const visableLines = previewOnly ? lines.slice(0, 10) : lines;
 
@@ -47,9 +50,19 @@ export default function DiffFile({
       </div>
     );
   }
+
+  console.log({ name: filename, aiFeedback: aiFeedback });
   return (
-    <div className="mb-8 border rounded">
-      <div className="chunk-title flex bg-gray-200 justify-between">
+    <div
+      className={`${
+        isSelected ? "border-blue-400" : ""
+      } border-1 mb-8 rounded transition-colors duration-200`}
+    >
+      <div
+        className={`${
+          isSelected ? "bg-blue-200" : "bg-gray-200"
+        } transition-colors duration-200 ease-in-out chunk-title flex justify-between hover:bg-blue-100 active:bg-blue-300`}
+      >
         <label className="flex items-center space-x-2 cursor-pointer px-4 py-2 w-10/12">
           <input
             type="checkbox"
@@ -77,6 +90,39 @@ export default function DiffFile({
       <pre className="text-sm font-mono whitespace-pre-wrap px-4 py-2">
         {visableLines.map(renderLines)}
       </pre>
+      {aiFeedback && showFeedback && (
+        <div className="bg-gray-100 p-2 mt-2 rounded text-sm">
+          <h3 className="font-semibold text-sm text-gray-700">
+            🔧 Best Practices
+          </h3>
+          {/* {aiFeedback.best_practices.join(" ")} */}
+          <ul className="list-disc ml-6 space-y-1">
+            {aiFeedback.best_practices.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+          <h3 className="font-semibold text-sm text-gray-700 mt-3">
+            🐞 Bugs / Regressions
+          </h3>
+          {/* {aiFeedback.potential_bugs_or_regressions.join(", ")} */}
+          <ul className=" list-disc ml-6 space-y-1">
+            {aiFeedback.potential_bugs_or_regressions.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+          <h3 className="font-semibold text-sm text-gray-700 mt-3">
+            🔐 Security
+          </h3>
+          <ul className=" list-disc ml-6 space-y-1">
+            {aiFeedback.security_issues.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <button onClick={() => setShowFeedback((val) => !val)}>
+        {showFeedback ? "Hide" : "Show"} AI Feedback
+      </button>
     </div>
   );
 }

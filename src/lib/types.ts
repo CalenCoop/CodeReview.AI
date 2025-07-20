@@ -17,3 +17,16 @@ export type PullRequestType = {
   };
   created_at: string;
 };
+export type AIFeedbackPerFile = {
+  best_practices: string[];
+  potential_bugs_or_regressions: string[];
+  security_issues: string[];
+};
+export type AIFeedbackMap = {
+  [filename: string]: AIFeedbackPerFile;
+};
+export type AIFeedbackType = {
+  data: AIFeedbackMap;
+  recommendation: string;
+  justification: string;
+};
