@@ -1,10 +1,18 @@
 "use client";
 import React, { useEffect } from "react";
 import { useParams } from "next/navigation";
-import { AIFeedbackMap, AIFeedbackType, PullRequestType } from "@/lib/types";
+import {
+  AIFeedbackMap,
+  AIFeedbackType,
+  DiffFileProps,
+  ModalType,
+  PullRequestType,
+} from "@/lib/types";
 import DiffFile from "@/components/DiffFile";
 import { url } from "inspector";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import Modal from "@/components/Modal";
+import FeedbackPanel from "@/components/FeedbackPanel";
 
 const tempData = {
   data: {
@@ -150,6 +158,7 @@ export default function ReviewPage() {
   const [loading, setLoading] = React.useState<boolean>(false);
   const [loadingResponse, setLoadingResponse] = React.useState<boolean>(false);
   const [modalFile, setModalFile] = React.useState<string | null>(null);
+  const [modalTab, setModalTab] = React.useState<"diff" | "feedback">("diff");
 
   const params = useParams<{
     owner: string;
@@ -264,15 +273,12 @@ export default function ReviewPage() {
         isSelected={selectedIds.has(id)}
         onToggle={() => toggleSelected(id)}
         aiFeedback={aiResponse?.data[`a/${id}`]}
+        modal={modalFile !== null}
+        toggleModal={toggleModal}
+        previewOnly={true}
       />
     );
   });
-  // console.log("diff", diff);
-  // console.log("filtered chunks", filteredChunks);
-  // console.log("renderchunks", renderChunks);
-  // console.log("selected ids", selectedIds);
-
-  // console.log("filtered chunks", filteredChunks.length);
 
   const joinedFilteredChunks = React.useMemo(() => {
     return filteredChunks
@@ -301,8 +307,10 @@ export default function ReviewPage() {
     setLoadingResponse(false);
   }
 
-  // console.log(typeof aiResponse?.data);
-  // console.log(aiResponse?.data);
+  function toggleModal(name: string): React.SetStateAction<string | void> {
+    setModalFile(name);
+  }
+  // console.log("modal name", modalFile);
 
   if (loading) {
     return <h1>Loading....</h1>;
@@ -310,6 +318,50 @@ export default function ReviewPage() {
   return (
     <div className="review-container">
       <h1>Review Page:</h1>
+      {modalFile && (
+        <Modal isOpen={modalFile !== null} onClose={() => setModalFile(null)}>
+          <div className="flex border-b mb-4 space-x-2">
+            <button
+              className={`px-4 py-2 rounded-t-md font-semibold transition-colors ${
+                modalTab === "diff"
+                  ? "bg-white border border-b-0 border-blue-500 text-blue-700"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+              onClick={() => setModalTab("diff")}
+            >
+              🧾 Code Diff
+            </button>
+            <button
+              className={`px-4 py-2 rounded-t-md font-semibold transition-colors ${
+                modalTab === "feedback"
+                  ? "bg-white border border-b-0 border-blue-500 text-blue-700"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+              onClick={() => setModalTab("feedback")}
+            >
+              💬 AI Feedback
+            </button>
+          </div>
+          {modalTab === "diff" ? (
+            <DiffFile
+              chunk={
+                allChunks.find((chunk) => getFilename(chunk) === modalFile)!
+              }
+              index={0}
+              getFilename={getFilename}
+              parseDiffLines={parseDiffLines}
+              isSelected={selectedIds.has(modalFile)}
+              onToggle={() => toggleSelected(modalFile)}
+              aiFeedback={aiResponse?.data[`a/${modalFile}`]}
+              modal={modalFile !== null}
+              toggleModal={toggleModal}
+              previewOnly={false}
+            />
+          ) : (
+            <FeedbackPanel aiFeedback={aiResponse?.data[`a/${modalFile}`]} />
+          )}
+        </Modal>
+      )}
       <button
         onClick={AIFetch}
         className="border-2 rounded-lg p-1 bg-green-600 text-white h-9 hover:bg-green-700 active:bg-green-800"

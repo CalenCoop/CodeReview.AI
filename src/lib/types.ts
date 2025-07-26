@@ -30,3 +30,24 @@ export type AIFeedbackType = {
   recommendation: string;
   justification: string;
 };
+export type ModalType = {
+  isOpen: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+};
+export type Line = {
+  type: string;
+  content: string;
+};
+export type DiffFileProps = {
+  chunk: string;
+  index: number;
+  getFilename: (chunk: string) => string;
+  parseDiffLines: (chunk: string) => Line[];
+  isSelected: boolean;
+  onToggle: () => void;
+  aiFeedback: AIFeedbackPerFile | undefined;
+  modal: boolean;
+  toggleModal: (name: string) => void;
+  previewOnly?: boolean;
+};

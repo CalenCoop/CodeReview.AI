@@ -1,19 +1,12 @@
 import React from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
-import { AIFeedbackMap, AIFeedbackPerFile } from "@/lib/types";
-type Line = {
-  type: string;
-  content: string;
-};
-type DiffFileProps = {
-  chunk: string;
-  index: number;
-  getFilename: (chunk: string) => string;
-  parseDiffLines: (chunk: string) => Line[];
-  isSelected: boolean;
-  onToggle: () => void;
-  aiFeedback: AIFeedbackPerFile | undefined;
-};
+import {
+  AIFeedbackMap,
+  AIFeedbackPerFile,
+  DiffFileProps,
+  Line,
+} from "@/lib/types";
+
 export default function DiffFile({
   chunk,
   index,
@@ -22,13 +15,17 @@ export default function DiffFile({
   onToggle,
   isSelected,
   aiFeedback,
+  modal,
+  toggleModal,
+  previewOnly,
 }: DiffFileProps) {
-  const [previewOnly, setPreviewOnly] = React.useState(true);
+  const [previewOnlyState, setPreviewOnlyState] = React.useState(true);
   const [showFeedback, setShowFeedback] = React.useState(true);
   const filename = getFilename(chunk);
   const lines = parseDiffLines(chunk);
 
-  const visableLines = previewOnly ? lines.slice(0, 10) : lines;
+  const shouldPreview = previewOnly ?? previewOnlyState;
+  const visableLines = shouldPreview ? lines.slice(0, 10) : lines;
 
   function getLineClass(type: string) {
     switch (type) {
@@ -51,7 +48,6 @@ export default function DiffFile({
     );
   }
 
-  console.log({ name: filename, aiFeedback: aiFeedback });
   return (
     <div
       className={`${
@@ -73,12 +69,13 @@ export default function DiffFile({
           {filename}
         </label>
         <div className="font-mono px-4 py-2 font-semibold flex justify-end w-1/6">
-          {lines.length > 10 && (
+          {lines.length > 10 && !modal && (
             <button
               className="cursor-pointer"
-              onClick={() => setPreviewOnly((val) => !val)}
+              // onClick={() => setPreviewOnly((val) => !val)}
+              onClick={() => toggleModal(filename)}
             >
-              {previewOnly ? (
+              {shouldPreview ? (
                 <ChevronDownIcon className="w-5 h-5 inline ml-1" />
               ) : (
                 <ChevronUpIcon className="w-5 h-5 inline ml-1" />
@@ -90,39 +87,6 @@ export default function DiffFile({
       <pre className="text-sm font-mono whitespace-pre-wrap px-4 py-2">
         {visableLines.map(renderLines)}
       </pre>
-      {aiFeedback && showFeedback && (
-        <div className="bg-gray-100 p-2 mt-2 rounded text-sm">
-          <h3 className="font-semibold text-sm text-gray-700">
-            🔧 Best Practices
-          </h3>
-          {/* {aiFeedback.best_practices.join(" ")} */}
-          <ul className="list-disc ml-6 space-y-1">
-            {aiFeedback.best_practices.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ul>
-          <h3 className="font-semibold text-sm text-gray-700 mt-3">
-            🐞 Bugs / Regressions
-          </h3>
-          {/* {aiFeedback.potential_bugs_or_regressions.join(", ")} */}
-          <ul className=" list-disc ml-6 space-y-1">
-            {aiFeedback.potential_bugs_or_regressions.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ul>
-          <h3 className="font-semibold text-sm text-gray-700 mt-3">
-            🔐 Security
-          </h3>
-          <ul className=" list-disc ml-6 space-y-1">
-            {aiFeedback.security_issues.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <button onClick={() => setShowFeedback((val) => !val)}>
-        {showFeedback ? "Hide" : "Show"} AI Feedback
-      </button>
     </div>
   );
 }
