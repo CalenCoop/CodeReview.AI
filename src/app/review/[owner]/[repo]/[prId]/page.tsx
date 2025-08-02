@@ -275,7 +275,7 @@ export default function ReviewPage() {
         aiFeedback={aiResponse?.data[`a/${id}`]}
         modal={modalFile !== null}
         toggleModal={toggleModal}
-        previewOnly={true}
+        hasSubmitted={!!aiResponse}
       />
     );
   });
@@ -311,6 +311,7 @@ export default function ReviewPage() {
     setModalFile(name);
   }
   // console.log("modal name", modalFile);
+  // console.log("chunk check", renderChunks.length);
 
   if (loading) {
     return <h1>Loading....</h1>;
@@ -361,163 +362,67 @@ export default function ReviewPage() {
           )}
         </Modal>
       )}
-      {renderChunks}
-      {/* <button
-        onClick={AIFetch}
-        className="border-2 rounded-lg p-1 bg-green-600 text-white h-9 hover:bg-green-700 active:bg-green-800"
-      >
-        {loadingResponse ? (
-          <LoadingSpinner> Loading...</LoadingSpinner>
-        ) : (
-          "Submit for Review"
-        )}
-      </button>
-
-      <nav className="nav-container border-2 flex justify-around color-red-600">
-        <a
-          href={githubUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600"
-        >
-          Open PR in GitHub
-        </a>
-        <button onClick={() => setFilter((val) => !val)}>
-          {filter ? "Show All Content" : "Filter Content"}
-        </button>
-        <button onClick={toggleSelectAllChunks}>
-          <span className="">
-            {selectedIds.size === filteredChunks.length
-              ? "Deselect All"
-              : "Select all"}
-          </span>
-        </button>
-      </nav> */}
-
-      {/* <div className="flex flex-wrap justify-between items-center gap-2 mt-4 mb-6 border-b pb-4">
-        <div className="flex items-center space-x-3">
+      <nav className="nav-container border-b flex justify-between mt-2 mb-3 p-3">
+        <div className="left-side-nav">
           <a
             href={githubUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium text-blue-600 hover:underline"
+            className="text-blue-600 mr-3"
           >
             🔗 Open PR on GitHub
           </a>
-          <span className="text-sm text-gray-600">
-            {selectedIds.size} of {filteredChunks.length} files selected
-          </span>
+
+          <span className="text-gray-500 text-sm">{`${selectedIds.size} of ${renderChunks.length} files selected`}</span>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex gap-2">
           <button
-            onClick={toggleSelectAllChunks}
-            className="px-3 py-1 text-sm border rounded hover:bg-gray-100"
+            className="px-4 py-1 text-sm border rounded-sm self-center hover:bg-gray-100 active:bg-gray-200"
+            onClick={() => setFilter((val) => !val)}
           >
-            {selectedIds.size === filteredChunks.length
-              ? "Deselect All"
-              : "Select All"}
+            {filter ? "Show All Files" : "Filter Content"}
           </button>
           <button
-            onClick={() => setFilter((val) => !val)}
-            className="px-3 py-1 text-sm border rounded hover:bg-gray-100"
+            className="px-4 py-1 text-sm border rounded-sm self-center hover:bg-gray-100 active:bg-gray-200"
+            onClick={toggleSelectAllChunks}
           >
-            {filter ? "Show All Files" : "Filter Common Noise"}
+            <span className="">
+              {selectedIds.size === filteredChunks.length
+                ? "Deselect All"
+                : "Select all"}
+            </span>
           </button>
           <button
             onClick={AIFetch}
-            className="px-4 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+            className="px-4 py-1 text-sm border rounded-sm bg-green-600 text-white hover:bg-green-700 active:bg-green-800 self-center"
           >
-            {loadingResponse ? "Submitting..." : "Submit for Review"}
+            {loadingResponse ? (
+              <LoadingSpinner> Loading...</LoadingSpinner>
+            ) : (
+              "Submit for Review"
+            )}
           </button>
         </div>
-      </div>
-      {!aiResponse && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm rounded p-4 mt-4">
+      </nav>
+
+      {/* Add a contintional here with aiResponse.
+    !aiResponse ?  Select files... : AiRecommendation  */}
+      {!aiResponse ? (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm rounded p-4 mt-4 mb-4">
           <p>
             <strong>Select</strong> which files you’d like to review using the
             checkboxes, or <em>submit all filtered files</em> for feedback.
             Click a file to preview before submitting.
           </p>
         </div>
-      )}
-      {!aiResponse ? (
-        <div className="space-y-4 mt-6">
-          {filteredChunks.map((chunk, index) => {
-            const filename = getFilename(chunk);
-            return (
-              <div
-                key={index}
-                className={`p-4 border rounded hover:shadow transition cursor-pointer ${
-                  selectedIds.has(filename)
-                    ? "border-blue-400 bg-blue-50"
-                    : "bg-white"
-                }`}
-                onClick={() => toggleModal(filename)}
-              >
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-mono text-gray-800">
-                    {filename}
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(filename)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      toggleSelected(filename);
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Click to preview diff
-                </p>
-              </div>
-            );
-          })}
-        </div>
       ) : (
-        <div className="space-y-4 mt-6">
-          {filteredChunks.map((chunk, index) => {
-            const filename = getFilename(chunk);
-            const feedback = aiResponse?.data[`a/${filename}`];
-            const bugs = feedback?.potential_bugs_or_regressions.length || 0;
-            const sec = feedback?.security_issues.length || 0;
-            const best = feedback?.best_practices.length || 0;
-
-            return (
-              <div
-                key={index}
-                className={`bg-white shadow-sm border rounded-md p-4 hover:shadow-md transition cursor-pointer ${
-                  selectedIds.has(filename) ? "border-blue-400 bg-blue-50" : ""
-                }`}
-                onClick={() => toggleModal(filename)}
-              >
-                <div className="flex justify-between items-center">
-                  <h3 className="font-mono text-sm text-gray-800">
-                    {filename}
-                  </h3>
-                  <div className="flex space-x-2 text-xs">
-                    {bugs > 0 && (
-                      <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded">
-                        🐞 {bugs}
-                      </span>
-                    )}
-                    {sec > 0 && (
-                      <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
-                        🔐 {sec}
-                      </span>
-                    )}
-                    {best > 0 && (
-                      <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">
-                        ✔️ {best}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )} */}
+        // make this a component - different colors based on response/rec
+        <p>
+          <strong> {aiResponse.recommendation}</strong>:{" "}
+          {aiResponse.justification}
+        </p>
+      )}
+      {renderChunks}
     </div>
   );
 }

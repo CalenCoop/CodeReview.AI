@@ -50,4 +50,5 @@ export type DiffFileProps = {
   modal: boolean;
   toggleModal: (name: string) => void;
   previewOnly?: boolean;
+  hasSubmitted?: boolean;
 };
