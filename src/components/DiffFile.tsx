@@ -48,7 +48,6 @@ export default function DiffFile({
       </div>
     );
   }
-  // console.log("feedback", aiFeedback);
   const bugs = aiFeedback?.potential_bugs_or_regressions.length || 0;
   const sec = aiFeedback?.security_issues.length || 0;
   const best = aiFeedback?.best_practices.length || 0;

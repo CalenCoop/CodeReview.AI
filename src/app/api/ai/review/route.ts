@@ -6,7 +6,6 @@ const openai = new OpenAI({ apiKey: process.env.OPEN_API_KEY });
 export async function POST(request: NextRequest) {
   try {
     const { diff } = await request.json();
-    // console.log(diff);
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1",
       messages: [
@@ -20,7 +19,7 @@ export async function POST(request: NextRequest) {
 
            Then, provide a final **recommendation** on whether the PR is:
             - Ready to merge  
-            - Needs changes  
+            - Needs Changes  
             - Cannot determine (insufficient context)
 
             Include a justification for your recommendation.
@@ -45,24 +44,26 @@ export async function POST(request: NextRequest) {
       ],
       temperature: 0.3,
     });
-    console.log("completion", completion);
+
     const content = completion.choices[0].message.content;
     if (!content) throw new Error("Missing content from OpenAI");
 
-    const aiResponse: AIFeedbackType = JSON.parse(content);
-    // if (aiResponse) {
-    //   try {
-    //     const parsed = JSON.parse(aiResponse);
-    //     return NextResponse.json({ data: parsed });
-    //   } catch (err) {
-    //     return NextResponse.json({
-    //       raw: aiResponse,
-    //       warning: "NON-JSON response, rendering fallback text",
-    //     });
-    //   }
-    // }
-    console.log(aiResponse);
-    return NextResponse.json({ data: aiResponse, diff: diff });
+    const raw = JSON.parse(content);
+    const { recommendation, justification, ...rest } = raw;
+
+    const cleaned: Record<string, AIFeedbackMap> = {};
+    for (const key in rest) {
+      const cleanKey = key.replace(/^a\//, "").replace(/^b\//, "");
+      cleaned[cleanKey] = rest[key];
+    }
+
+    const aiResponse: AIFeedbackType = {
+      data: cleaned,
+      recommendation,
+      justification,
+    };
+
+    return NextResponse.json({ data: aiResponse, diff });
   } catch (error) {
     console.error("OpenAI error:", error);
     return NextResponse.json(

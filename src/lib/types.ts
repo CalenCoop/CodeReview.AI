@@ -23,10 +23,15 @@ export type AIFeedbackPerFile = {
   security_issues: string[];
 };
 export type AIFeedbackMap = {
-  [filename: string]: AIFeedbackPerFile;
+  best_practices: string[];
+  potential_bugs_or_regressions: string[];
+  security_issues: string[];
 };
+
+export type AIFeedbackData = Record<string, AIFeedbackMap>;
+
 export type AIFeedbackType = {
-  data: AIFeedbackMap;
+  data: AIFeedbackData;
   recommendation: string;
   justification: string;
 };

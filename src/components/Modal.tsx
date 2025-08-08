@@ -7,7 +7,6 @@ export default function Modal({ isOpen, onClose, children }: ModalType) {
   if (!isOpen) return null;
 
   const modalRef = React.useRef<HTMLDivElement | null>(null);
-  console.log("ref", modalRef);
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
