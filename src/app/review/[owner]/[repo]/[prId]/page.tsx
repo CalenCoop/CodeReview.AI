@@ -1,138 +1,19 @@
 "use client";
 import React, { useEffect } from "react";
 import { useParams } from "next/navigation";
-import { AIFeedbackMap, AIFeedbackType, PullRequestType } from "@/lib/types";
+import {
+  AIFeedbackMap,
+  AIFeedbackType,
+  DiffFileProps,
+  ModalType,
+  PullRequestType,
+} from "@/lib/types";
 import DiffFile from "@/components/DiffFile";
 import { url } from "inspector";
 import LoadingSpinner from "@/components/LoadingSpinner";
-
-const tempData = {
-  data: {
-    "a/src/app/api/auth/[...nextauth]/route.ts": {
-      potential_bugs_or_regressions: [],
-      security_issues: [],
-      best_practices: [],
-    },
-    "a/src/app/api/github/diff/route.ts": {
-      potential_bugs_or_regressions: [
-        "No validation or sanitization of 'repo' and 'num' parameters, which could lead to malformed URLs or unintended API calls.",
-        "Directly interpolates user input into the GitHub API URL, which could cause errors or unexpected behavior if the input is malformed.",
-      ],
-      security_issues: [
-        "Potential for SSRF (Server-Side Request Forgery) if an attacker can manipulate 'repo' or 'num' to point to a different host or path, depending on how FetchGitHub is implemented.",
-      ],
-      best_practices: [
-        "Validate and sanitize input parameters before using them in URLs.",
-        "Consider using stricter typing or regex to ensure 'repo' and 'num' are in expected formats.",
-      ],
-    },
-    "a/src/app/api/github/pull/route.ts": {
-      potential_bugs_or_regressions: [],
-      security_issues: [],
-      best_practices: [
-        "Remove commented-out code before merging to keep the codebase clean.",
-      ],
-    },
-    "a/src/app/api/github/pulls/route.ts": {
-      potential_bugs_or_regressions: [
-        "No validation or sanitization of 'repo' parameter before using it in the GitHub API URL.",
-      ],
-      security_issues: [
-        "Potential SSRF if 'repo' is manipulated to inject malicious content into the URL.",
-      ],
-      best_practices: [
-        "Validate and sanitize 'repo' parameter.",
-        "Consider error handling for FetchGitHub failures.",
-      ],
-    },
-    "a/src/app/api/github/review/route.ts": {
-      potential_bugs_or_regressions: [
-        "No validation or sanitization of 'owner', 'repo', or 'prId' parameters before interpolating into the URL.",
-        "No check for response.ok before calling response.text(), which could result in misleading output if the fetch fails.",
-      ],
-      security_issues: [
-        "Potential SSRF via user-controlled 'owner', 'repo', or 'prId' parameters.",
-      ],
-      best_practices: [
-        "Validate and sanitize all input parameters.",
-        "Check response.ok before using the response.",
-        "Consider rate limiting or authentication to prevent abuse.",
-      ],
-    },
-    "a/src/app/page.tsx": {
-      potential_bugs_or_regressions: [
-        "No error handling if extractRepoPathFromUrl returns null; handleGitFetch will be called with an invalid URL.",
-        "gitData is fetched but not set (setGitData is commented out), so <h2>{gitData?.full_name}</h2> will always be empty.",
-      ],
-      security_issues: [],
-      best_practices: [
-        "Add error handling for invalid URLs.",
-        "Remove commented-out code.",
-        "Consider disabling the submit button if the input is invalid.",
-      ],
-    },
-    "a/src/app/review/[owner]/[repo]/[prId]/page.tsx": {
-      potential_bugs_or_regressions: [
-        "toggleSelectAllChunks logic may not behave as expected if filteredChunks changes after selection.",
-        "No error handling for failed fetches in handleGitFetch or AIFetch beyond logging to console.",
-        "aiResponse is typed as 'any' and not validated before rendering.",
-      ],
-      security_issues: [],
-      best_practices: [
-        "Add error handling and user feedback for failed fetches.",
-        "Type aiResponse properly once the API response shape is known.",
-        "Consider memoizing getFilename or parseDiffLines if performance becomes an issue.",
-      ],
-    },
-    "a/src/components/DiffFile.tsx": {
-      potential_bugs_or_regressions: [],
-      security_issues: [],
-      best_practices: [
-        "Consider using React.memo if DiffFile is rendered many times for performance.",
-        "Use more descriptive prop names (e.g., 'isPreviewOnly' instead of 'previewOnly').",
-      ],
-    },
-    "a/src/components/Repo.tsx": {
-      potential_bugs_or_regressions: [],
-      security_issues: [],
-      best_practices: [
-        "Remove commented-out code.",
-        "Consider accessibility improvements for radio inputs (e.g., ARIA attributes).",
-      ],
-    },
-    "a/src/lib/auth.ts": {
-      potential_bugs_or_regressions: [],
-      security_issues: [],
-      best_practices: [],
-    },
-    "a/src/lib/github.ts": {
-      potential_bugs_or_regressions: [
-        "No authentication or rate limiting when calling the GitHub API, which could lead to hitting rate limits or leaking sensitive data.",
-        "No validation of the input URL.",
-      ],
-      security_issues: [
-        "Potential SSRF if the input URL is not strictly controlled.",
-      ],
-      best_practices: [
-        "Validate and sanitize the input URL.",
-        "Consider adding authentication when calling the GitHub API.",
-      ],
-    },
-    "a/src/lib/openai.ts": {
-      potential_bugs_or_regressions: [],
-      security_issues: [],
-      best_practices: [],
-    },
-    "a/src/lib/types.ts": {
-      potential_bugs_or_regressions: [],
-      security_issues: [],
-      best_practices: [],
-    },
-  },
-  recommendation: "Needs changes",
-  justification:
-    "There are several potential security issues (notably SSRF) and missing input validation in the API routes that accept user-supplied parameters and use them to construct URLs for server-side fetches. These must be addressed before merging. Additionally, there are some best practice improvements and minor bugs to fix, such as error handling and removal of commented-out code.",
-};
+import Modal from "@/components/Modal";
+import FeedbackPanel from "@/components/FeedbackPanel";
+import AiRec from "@/components/AiRec";
 
 export default function ReviewPage() {
   const [pullRequest, setPullRequest] = React.useState<PullRequestType | null>(
@@ -141,15 +22,13 @@ export default function ReviewPage() {
   const [diff, setDiff] = React.useState<string>("");
   const [filter, setFilter] = React.useState<boolean>(true);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
-  // const [aiResponse, setAiResponse] = React.useState<AIFeedbackType | null>(
-  //   null
-  // );
   const [aiResponse, setAiResponse] = React.useState<AIFeedbackType | null>(
-    tempData
+    null
   );
   const [loading, setLoading] = React.useState<boolean>(false);
   const [loadingResponse, setLoadingResponse] = React.useState<boolean>(false);
   const [modalFile, setModalFile] = React.useState<string | null>(null);
+  const [modalTab, setModalTab] = React.useState<"diff" | "feedback">("diff");
 
   const params = useParams<{
     owner: string;
@@ -248,10 +127,7 @@ export default function ReviewPage() {
       return next;
     });
   }
-  // console.log(
-  //   "testing",
-  //   aiResponse?.data["a/src/app/api/github/diff/route.ts"]
-  // );
+
   const renderChunks = filteredChunks.map((chunk: string, index: number) => {
     const id = getFilename(chunk);
     return (
@@ -263,16 +139,14 @@ export default function ReviewPage() {
         parseDiffLines={parseDiffLines}
         isSelected={selectedIds.has(id)}
         onToggle={() => toggleSelected(id)}
-        aiFeedback={aiResponse?.data[`a/${id}`]}
+        // aiFeedback={aiResponse?.data[`a/${id}`]}
+        aiFeedback={aiResponse?.data[id]}
+        modal={modalFile !== null}
+        toggleModal={toggleModal}
+        hasSubmitted={!!aiResponse}
       />
     );
   });
-  // console.log("diff", diff);
-  // console.log("filtered chunks", filteredChunks);
-  // console.log("renderchunks", renderChunks);
-  // console.log("selected ids", selectedIds);
-
-  // console.log("filtered chunks", filteredChunks.length);
 
   const joinedFilteredChunks = React.useMemo(() => {
     return filteredChunks
@@ -292,59 +166,137 @@ export default function ReviewPage() {
         },
         body: JSON.stringify({ diff: joinedFilteredChunks }),
       });
-      const data = await response.json();
-      console.log("data", data);
-      setAiResponse(data);
+      const fullResponse = await response.json();
+      const { data: aiData } = fullResponse;
+      setAiResponse(aiData);
+      console.log("AI Response", aiData);
+      console.log("Cleaned AI keys:", Object.keys(aiData.data));
     } catch (error) {
       console.log("error fetching AI response");
     }
     setLoadingResponse(false);
   }
 
-  // console.log(typeof aiResponse?.data);
-  // console.log(aiResponse?.data);
+  function toggleModal(name: string): React.SetStateAction<string | void> {
+    setModalFile(name);
+  }
 
   if (loading) {
     return <h1>Loading....</h1>;
   }
   return (
     <div className="review-container">
-      <h1>Review Page:</h1>
-      <button
-        onClick={AIFetch}
-        className="border-2 rounded-lg p-1 bg-green-600 text-white h-9 hover:bg-green-700 active:bg-green-800"
-      >
-        {loadingResponse ? (
-          <LoadingSpinner> Loading...</LoadingSpinner>
-        ) : (
-          "Submit for Review"
-        )}
-      </button>
-      <p>{pullRequest?.user.login}</p>
-      <nav className="nav-container border-2 flex justify-around color-red-600">
-        <a
-          href={githubUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600"
-        >
-          Open PR in GitHub
-        </a>
-        <button onClick={() => setFilter((val) => !val)}>
-          {filter ? "Show All Content" : "Filter Content"}
-        </button>
-        <button onClick={toggleSelectAllChunks}>
-          <span className="">
-            {selectedIds.size === filteredChunks.length
-              ? "Deselect All"
-              : "Select all"}
-          </span>
-        </button>
+      {modalFile && (
+        <Modal isOpen={modalFile !== null} onClose={() => setModalFile(null)}>
+          <div className="flex border-b mb-4 space-x-2">
+            <button
+              className={`px-4 py-2 rounded-t-md font-semibold transition-colors ${
+                modalTab === "diff"
+                  ? "bg-white border border-b-0 border-blue-500 text-blue-700"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+              onClick={() => setModalTab("diff")}
+            >
+              🧾 Code Diff
+            </button>
+            <button
+              className={`px-4 py-2 rounded-t-md font-semibold transition-colors ${
+                modalTab === "feedback"
+                  ? "bg-white border border-b-0 border-blue-500 text-blue-700"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+              onClick={() => setModalTab("feedback")}
+            >
+              💬 AI Feedback
+            </button>
+          </div>
+          {/* make modal its own component instead of having it inline here */}
+          {modalTab === "diff" ? (
+            <DiffFile
+              chunk={
+                allChunks.find((chunk) => getFilename(chunk) === modalFile)!
+              }
+              index={0}
+              getFilename={getFilename}
+              parseDiffLines={parseDiffLines}
+              isSelected={selectedIds.has(modalFile)}
+              onToggle={() => toggleSelected(modalFile)}
+              aiFeedback={aiResponse?.data[modalFile]}
+              modal={modalFile !== null}
+              toggleModal={toggleModal}
+              previewOnly={false}
+            />
+          ) : (
+            <FeedbackPanel
+              aiFeedback={
+                aiResponse?.data[modalFile ?? ""] ?? {
+                  potential_bugs_or_regressions: [],
+                  security_issues: [],
+                  best_practices: ["✅ No feedback found for this file."],
+                }
+              }
+            />
+          )}
+        </Modal>
+      )}
+      <nav className="nav-container border-b flex justify-between mt-2 mb-3 p-3">
+        <div className="left-side-nav">
+          <a
+            href={githubUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 mr-3"
+          >
+            🔗 Open PR on GitHub
+          </a>
+
+          <span className="text-gray-500 text-sm">{`${selectedIds.size} of ${renderChunks.length} files selected`}</span>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="px-4 py-1 text-sm border rounded-sm self-center hover:bg-gray-100 active:bg-gray-200"
+            onClick={() => setFilter((val) => !val)}
+          >
+            {filter ? "Show All Files" : "Filter Content"}
+          </button>
+          <button
+            className="px-4 py-1 text-sm border rounded-sm self-center hover:bg-gray-100 active:bg-gray-200"
+            onClick={toggleSelectAllChunks}
+          >
+            <span className="">
+              {selectedIds.size === filteredChunks.length
+                ? "Deselect All"
+                : "Select all"}
+            </span>
+          </button>
+          <button
+            onClick={AIFetch}
+            className="px-4 py-1 text-sm border rounded-sm bg-green-600 text-white hover:bg-green-700 active:bg-green-800 self-center"
+          >
+            {loadingResponse ? (
+              <LoadingSpinner> Loading...</LoadingSpinner>
+            ) : (
+              "Submit for Review"
+            )}
+          </button>
+        </div>
       </nav>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {renderChunks}
-      </div>
-      {/* <p>{aiResponse?.data}</p> */}
+
+      {!aiResponse ? (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm rounded p-4 mt-4 mb-4">
+          <p>
+            <strong>Select</strong> which files you’d like to review using the
+            checkboxes, or <em>submit all filtered files</em> for feedback.
+            Click a file to preview before submitting.
+          </p>
+        </div>
+      ) : (
+        <AiRec
+          recommendation={aiResponse.recommendation}
+          justification={aiResponse.justification}
+        />
+      )}
+      {renderChunks}
     </div>
   );
 }

@@ -1,19 +1,12 @@
 import React from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
-import { AIFeedbackMap, AIFeedbackPerFile } from "@/lib/types";
-type Line = {
-  type: string;
-  content: string;
-};
-type DiffFileProps = {
-  chunk: string;
-  index: number;
-  getFilename: (chunk: string) => string;
-  parseDiffLines: (chunk: string) => Line[];
-  isSelected: boolean;
-  onToggle: () => void;
-  aiFeedback: AIFeedbackPerFile | undefined;
-};
+import {
+  AIFeedbackMap,
+  AIFeedbackPerFile,
+  DiffFileProps,
+  Line,
+} from "@/lib/types";
+
 export default function DiffFile({
   chunk,
   index,
@@ -22,13 +15,18 @@ export default function DiffFile({
   onToggle,
   isSelected,
   aiFeedback,
+  modal,
+  toggleModal,
+  previewOnly,
+  hasSubmitted,
 }: DiffFileProps) {
-  const [previewOnly, setPreviewOnly] = React.useState(true);
+  const [previewOnlyState, setPreviewOnlyState] = React.useState(true);
   const [showFeedback, setShowFeedback] = React.useState(true);
   const filename = getFilename(chunk);
   const lines = parseDiffLines(chunk);
 
-  const visableLines = previewOnly ? lines.slice(0, 10) : lines;
+  const shouldPreview = previewOnly ?? previewOnlyState;
+  const visableLines = shouldPreview ? lines.slice(0, 10) : lines;
 
   function getLineClass(type: string) {
     switch (type) {
@@ -50,79 +48,64 @@ export default function DiffFile({
       </div>
     );
   }
-
-  console.log({ name: filename, aiFeedback: aiFeedback });
+  const bugs = aiFeedback?.potential_bugs_or_regressions.length || 0;
+  const sec = aiFeedback?.security_issues.length || 0;
+  const best = aiFeedback?.best_practices.length || 0;
   return (
     <div
-      className={`${
+      className={`p-4 mb-3 rounded transition-colors duration-200 hover:shadow border-1 border-blue-400 cursor-pointer ${
         isSelected ? "border-blue-400" : ""
-      } border-1 mb-8 rounded transition-colors duration-200`}
+      } ${
+        hasSubmitted ? "border" : isSelected ? "border-blue-400 bg-blue-50" : ""
+      }`}
     >
       <div
-        className={`${
-          isSelected ? "bg-blue-200" : "bg-gray-200"
-        } transition-colors duration-200 ease-in-out chunk-title flex justify-between hover:bg-blue-100 active:bg-blue-300`}
+        className={`transition-colors duration-200 ease-in-out chunk-title flex justify-between `}
       >
-        <label className="flex items-center space-x-2 cursor-pointer px-4 py-2 w-10/12">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={onToggle}
-            className="mr-2"
-          />
-          {filename}
-        </label>
-        <div className="font-mono px-4 py-2 font-semibold flex justify-end w-1/6">
-          {lines.length > 10 && (
-            <button
-              className="cursor-pointer"
-              onClick={() => setPreviewOnly((val) => !val)}
-            >
-              {previewOnly ? (
-                <ChevronDownIcon className="w-5 h-5 inline ml-1" />
-              ) : (
-                <ChevronUpIcon className="w-5 h-5 inline ml-1" />
-              )}
-            </button>
+        <div onClick={() => toggleModal(filename)}>
+          <div className="flex items-center space-x-1">
+            {hasSubmitted && <span>✅</span>}
+            <span className="text-sm font-mono text-gray-800">{filename}</span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Click to preview diff</p>
+        </div>
+
+        <div>
+          {!hasSubmitted && (
+            <label className="flex items-center space-x-2  px-4 py-2 w-10/12">
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={onToggle}
+                className="mr-2 cursor-pointer"
+              />
+            </label>
           )}
+          <div className="flex space-x-2 text-xs">
+            {bugs > 0 && (
+              <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                🐞 {bugs}
+              </span>
+            )}
+            {sec > 0 && (
+              <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                🔐 {sec}
+              </span>
+            )}
+            {best > 0 && (
+              <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                ✔️ {best}
+              </span>
+            )}
+          </div>
         </div>
       </div>
-      <pre className="text-sm font-mono whitespace-pre-wrap px-4 py-2">
-        {visableLines.map(renderLines)}
-      </pre>
-      {aiFeedback && showFeedback && (
-        <div className="bg-gray-100 p-2 mt-2 rounded text-sm">
-          <h3 className="font-semibold text-sm text-gray-700">
-            🔧 Best Practices
-          </h3>
-          {/* {aiFeedback.best_practices.join(" ")} */}
-          <ul className="list-disc ml-6 space-y-1">
-            {aiFeedback.best_practices.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ul>
-          <h3 className="font-semibold text-sm text-gray-700 mt-3">
-            🐞 Bugs / Regressions
-          </h3>
-          {/* {aiFeedback.potential_bugs_or_regressions.join(", ")} */}
-          <ul className=" list-disc ml-6 space-y-1">
-            {aiFeedback.potential_bugs_or_regressions.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ul>
-          <h3 className="font-semibold text-sm text-gray-700 mt-3">
-            🔐 Security
-          </h3>
-          <ul className=" list-disc ml-6 space-y-1">
-            {aiFeedback.security_issues.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ul>
-        </div>
+
+      {modal && (
+        <pre className="text-sm font-mono whitespace-pre-wrap px-4 py-2">
+          {visableLines.map(renderLines)}
+        </pre>
       )}
-      <button onClick={() => setShowFeedback((val) => !val)}>
-        {showFeedback ? "Hide" : "Show"} AI Feedback
-      </button>
     </div>
   );
 }
