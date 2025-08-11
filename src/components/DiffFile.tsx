@@ -67,11 +67,13 @@ export default function DiffFile({
             {hasSubmitted && <span>✅</span>}
             <span className="text-sm font-mono text-gray-800">{filename}</span>
           </div>
-          <p className="text-xs text-gray-500 mt-1">Click to preview diff</p>
+          {!modal && (
+            <p className="text-xs text-gray-500 mt-1">Click to preview diff</p>
+          )}
         </div>
 
         <div>
-          {!hasSubmitted && (
+          {!hasSubmitted && !modal && (
             <label className="flex items-center space-x-2  px-4 py-2 w-10/12">
               <input
                 type="checkbox"
