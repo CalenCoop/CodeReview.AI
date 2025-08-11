@@ -41,7 +41,6 @@ export default function ReviewPage() {
     }
   }, [params]);
 
-  //kind of redundant having the fetch code again - could make it a hook
   async function handleGitFetch(
     owner: string,
     repo: string,
@@ -64,7 +63,6 @@ export default function ReviewPage() {
   }
 
   const allChunks = diff.split(/^diff --git /gm).filter(Boolean);
-  // console.log("chunks", allChunks);
 
   const getFilename = (chunk: string) => {
     const match = chunk.match(/^a\/(.+?)\s+b\//m);
@@ -103,8 +101,6 @@ export default function ReviewPage() {
       setSelectedIds(new Set());
     }
   }
-
-  // console.log("filter button", filter);
   const parseDiffLines = (chunk: string) => {
     const lines = chunk.split("\n");
     const classifiedLines = lines.map((line) => {
@@ -139,7 +135,6 @@ export default function ReviewPage() {
         parseDiffLines={parseDiffLines}
         isSelected={selectedIds.has(id)}
         onToggle={() => toggleSelected(id)}
-        // aiFeedback={aiResponse?.data[`a/${id}`]}
         aiFeedback={aiResponse?.data[id]}
         modal={modalFile !== null}
         toggleModal={toggleModal}
@@ -154,8 +149,6 @@ export default function ReviewPage() {
       .join("\n");
   }, [filteredChunks, selectedIds]);
 
-  // console.log("filtered for api", joinedFilteredChunks);
-
   async function AIFetch() {
     try {
       setLoadingResponse(true);
@@ -169,8 +162,6 @@ export default function ReviewPage() {
       const fullResponse = await response.json();
       const { data: aiData } = fullResponse;
       setAiResponse(aiData);
-      console.log("AI Response", aiData);
-      console.log("Cleaned AI keys:", Object.keys(aiData.data));
     } catch (error) {
       console.log("error fetching AI response");
     }

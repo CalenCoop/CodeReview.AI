@@ -5,7 +5,6 @@ type AiRecType = {
   justification: string;
 };
 export default function AiRec({ recommendation, justification }: AiRecType) {
-  console.log("rec from component side", recommendation);
   const bgColor =
     recommendation === "Needs changes"
       ? "bg-yellow-100 text-yellow-800"

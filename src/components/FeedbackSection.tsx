@@ -11,9 +11,11 @@ export default function FeedbackSection({ title, items }: FeedackSectionType) {
       <h3 className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-1">
         {title}
       </h3>
-      <ul>
+      <ul className="list-disc">
         {items.map((item, i) => (
-          <li key={i}>{item}</li>
+          <li key={i} className="ml-5">
+            {item}
+          </li>
         ))}
       </ul>
     </div>
