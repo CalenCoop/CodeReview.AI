@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
     const { diff } = await request.json();
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1",
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",

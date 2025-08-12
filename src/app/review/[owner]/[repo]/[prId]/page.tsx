@@ -116,11 +116,33 @@ export default function ReviewPage() {
 
   const githubUrl: string = `https://github.com/${params.owner}/${params.repo}/pull/${params.prId}`;
 
+  function canAddChunk(id: string) {
+    const currentSelected = filteredChunks
+      .filter((chunk) => selectedIds.has(getFilename(chunk)))
+      .map((c) => estimateTokens(c))
+      .reduce((a, b) => a + b, 0);
+    const adding = estimateTokens(
+      filteredChunks.find((c) => getFilename(c) === id) || ""
+    );
+    return currentSelected + adding <= INPUT_BUDGET;
+  }
+
   function toggleSelected(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
+      if (next.has(id)) {
+        next.delete(id);
+        return next;
+      } else {
+        if (!canAddChunk(id)) {
+          alert(
+            "Adding this file would exceed the review size limit. Try deselecting another file first."
+          );
+          return prev;
+        }
+        next.add(id);
+        return next;
+      }
     });
   }
 
@@ -149,15 +171,79 @@ export default function ReviewPage() {
       .join("\n");
   }, [filteredChunks, selectedIds]);
 
+  const MODEL_TOKEN_LIMIT = 30000; //leave room for the model's reply
+  const OUTPUT_BUDGET = 2000; // room for system message
+  const SYSTEM_PROMPT_BUDGET = 2000; //
+  const INPUT_BUDGET = MODEL_TOKEN_LIMIT - OUTPUT_BUDGET - SYSTEM_PROMPT_BUDGET;
+  const estimateTokens = (s: string) => Math.ceil(s.length / 4);
+
+  function buildBudgetDiff(
+    filteredChunks: string[],
+    isSelected: (id: string) => boolean,
+    getFilename: (chunk: string) => string
+  ) {
+    //collect selected chunks with sizes
+    const selected = filteredChunks
+      .filter((chunk) => isSelected(getFilename(chunk)))
+      .map((chunk) => ({
+        id: getFilename(chunk),
+        text: chunk,
+        tokens: estimateTokens(chunk),
+      }))
+      .sort((a, b) => a.tokens - b.tokens); //take out if we dont want to prefer smaller chunks over bigger ones
+    let used = 0;
+    const included: string[] = [];
+    const includedIds: string[] = [];
+    const skippedIds: string[] = [];
+
+    for (const { id, text, tokens } of selected) {
+      if (used + tokens <= INPUT_BUDGET) {
+        included.push(text);
+        includedIds.push(id);
+        used += tokens;
+      } else {
+        skippedIds.push(id);
+      }
+    }
+    return {
+      diff: included.join("\n"),
+      includedIds,
+      skippedIds,
+      tokensUsed: used,
+      tokensBudget: INPUT_BUDGET,
+    };
+  }
+
   async function AIFetch() {
     try {
       setLoadingResponse(true);
+
+      const { diff, includedIds, skippedIds, tokensUsed, tokensBudget } =
+        buildBudgetDiff(
+          filteredChunks,
+          (id) => selectedIds.has(id),
+          getFilename
+        );
+      if (!diff) {
+        alert(
+          "Your selection is too large to send in one request. Try selecting smaller or fewer files."
+        );
+        setLoadingResponse(false);
+        return;
+      }
+      if (skippedIds.length > 0) {
+        console.warn(
+          `⚠️ Skipped ${skippedIds.length} file(s) due to size:`,
+          skippedIds
+        );
+      }
+
       const response = await fetch("/api/ai/review", {
         method: "POST",
         headers: {
           "Content-type": "application/json",
         },
-        body: JSON.stringify({ diff: joinedFilteredChunks }),
+        body: JSON.stringify({ diff: diff }),
       });
       const fullResponse = await response.json();
       const { data: aiData } = fullResponse;
@@ -171,7 +257,15 @@ export default function ReviewPage() {
   function toggleModal(name: string): React.SetStateAction<string | void> {
     setModalFile(name);
   }
-
+  const tokensUsed = filteredChunks
+    .filter((chunk) => selectedIds.has(getFilename(chunk)))
+    .map((c) => estimateTokens(c))
+    .reduce((a, b) => a + b, 0);
+  const percentUsed = Math.min(
+    100,
+    Math.round((tokensUsed / INPUT_BUDGET) * 100)
+  );
+  console.log("percentage used", percentUsed, "tokens", tokensUsed);
   if (loading) {
     return <h1>Loading....</h1>;
   }
@@ -243,6 +337,29 @@ export default function ReviewPage() {
 
           <span className="text-gray-500 text-sm">{`${selectedIds.size} of ${renderChunks.length} files selected`}</span>
         </div>
+        {percentUsed > 10 && (
+          <div className="mt-2 w-full max-w-xl">
+            <div className="flex justify-between text-xs text-gray-600 mb-1">
+              <span>Review Size</span>
+              <span>
+                {tokensUsed.toLocaleString()} / {INPUT_BUDGET.toLocaleString()}{" "}
+                est. tokens
+              </span>
+            </div>
+            <div className="h-2 bg-gray-200 rounded">
+              <div
+                className={`h-2 rounded ${
+                  percentUsed > 90
+                    ? "bg-red-500"
+                    : percentUsed > 75
+                    ? "bg-yellow-500"
+                    : "bg-green-500"
+                }`}
+                style={{ width: `${percentUsed}%` }}
+              />
+            </div>
+          </div>
+        )}
         <div className="flex gap-2">
           <button
             className="px-4 py-1 text-sm border rounded-sm self-center hover:bg-gray-100 active:bg-gray-200"
