@@ -265,7 +265,8 @@ export default function ReviewPage() {
     100,
     Math.round((tokensUsed / INPUT_BUDGET) * 100)
   );
-  console.log("percentage used", percentUsed, "tokens", tokensUsed);
+  // console.log("percentage used", percentUsed, "tokens", tokensUsed);
+  console.log("used percent", percentUsed);
   if (loading) {
     return <h1>Loading....</h1>;
   }
@@ -377,16 +378,30 @@ export default function ReviewPage() {
                 : "Select all"}
             </span>
           </button>
-          <button
-            onClick={AIFetch}
-            className="px-4 py-1 text-sm border rounded-sm bg-green-600 text-white hover:bg-green-700 active:bg-green-800 self-center"
-          >
-            {loadingResponse ? (
-              <LoadingSpinner> Loading...</LoadingSpinner>
-            ) : (
-              "Submit for Review"
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={AIFetch}
+              disabled={percentUsed >= 100}
+              className={`px-4 py-1 text-sm border rounded-sm self-center 
+              ${
+                percentUsed >= 100
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-green-600 text-white hover:bg-green-700 active:bg-green-800"
+              }`}
+            >
+              {loadingResponse ? (
+                <LoadingSpinner> Loading...</LoadingSpinner>
+              ) : (
+                "Submit for Review"
+              )}
+            </button>
+            {percentUsed >= 100 && (
+              <p className="text-xs text-red-600 mt-1">
+                ⚠ Your selection is too large to send in one request. Deselect
+                some files to continue.
+              </p>
             )}
-          </button>
+          </div>
         </div>
       </nav>
 
