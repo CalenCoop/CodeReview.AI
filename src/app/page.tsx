@@ -57,7 +57,6 @@ export default function Home() {
       if (parsed.hostname !== "github.com") return null;
       const splitUrl = parsed.pathname.split("/").filter(Boolean);
       if (splitUrl.length >= 2) {
-        console.log("params are ", `${splitUrl[0]}/${splitUrl[1]}`);
         return `${splitUrl[0]}/${splitUrl[1]}`;
       }
       return null;
