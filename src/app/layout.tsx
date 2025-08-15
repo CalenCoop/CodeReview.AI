@@ -13,7 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 const siteUrl = "https://codereviewai.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "CodeReview.ai",
   description: "AI-powered GitHub pull request reviews.",
   openGraph: {
