@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     siteName: "CodeReview.ai",
     images: [
       {
-        url: "https://codereviewai.vercel.app/codereview-thumbnail.gif",
+        url: "https://codereviewai.vercel.app/codereview-thumbnail.png",
         width: 1200,
         height: 630,
         alt: "CodeReview.ai Preview",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "CodeReview.ai",
     description: "AI-powered GitHub pull request reviews.",
-    images: ["https://codereviewai.vercel.app/codereview-thumbnail.gif"],
+    images: ["https://codereviewai.vercel.app/codereview-thumbnail.png"],
   },
 };
 
