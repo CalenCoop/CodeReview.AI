@@ -130,7 +130,7 @@ export default function Home() {
       <header className="border-b bg-white">
         <div className="mx-auto max-w-6xl px-4 py-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold tracking-tights">
-            CodeReview<span className="text-blue-600">.io </span>
+            CodeReview<span className="text-blue-600">.ai </span>
           </h1>
           {selectedPR && (
             <button
