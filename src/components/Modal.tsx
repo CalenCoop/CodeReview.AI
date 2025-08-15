@@ -54,8 +54,6 @@ export default function Modal({
         >
           &times;
         </button>
-        {/* <div className="modal-children max-h-175 overflow-auto">{children}</div> */}
-        {/* tabs */}
         <div className="flex border-b mb-4 space-x-2">
           <button
             className={`px-4 py-2 rounded-t-md font-semibold transition-colors ${
