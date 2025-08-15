@@ -5,7 +5,7 @@ import { pull_requests } from "@/generated/prisma";
 import { GitType } from "@/lib/types";
 import { createPrerenderParamsForClientSegment } from "next/dist/server/app-render/entry-base";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 
 type PullRequestType = {
@@ -33,6 +33,14 @@ export default function Home() {
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  React.useEffect(() => {
+    const repoParam = searchParams.get("repo");
+    if (!repoParam) return;
+    setGitUrl(`https://github.com/${repoParam}`);
+    handleGitFetch(`/api/github/pulls?repo=${encodeURIComponent(repoParam)}`);
+  }, [searchParams]);
 
   async function handleGitFetch(url: string) {
     try {
@@ -43,21 +51,38 @@ export default function Home() {
           Accept: "application/vnd.github+json",
         },
       });
-      const data = await response.json();
-      setPullRequests(data.data);
+      const json = await response.json();
+      if (!response.ok) throw new Error(json?.error || "Failed to load PRs");
+      //ensure data is array
+      const list = Array.isArray(json?.data) ? json.data : [];
+      //  const data = await response.json();
+      //   setPullRequests(data.data);
+      setPullRequests(list);
     } catch (error: any) {
       setError(error?.message ?? "Something went wrong");
     } finally {
       setLoading(false);
     }
   }
-  function extractRepoPathFromUrl(url: string) {
+  function extractRepoPathFromUrl(url: string): string | null {
+    const raw = url.trim();
+    //add if missing
+    const withProto = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
     try {
-      const parsed = new URL(url);
-      if (parsed.hostname !== "github.com") return null;
-      const splitUrl = parsed.pathname.split("/").filter(Boolean);
-      if (splitUrl.length >= 2) {
-        return `${splitUrl[0]}/${splitUrl[1]}`;
+      const parsed = new URL(withProto);
+      //require github.com
+      if (!/(^|\.)github\.com$/i.test(parsed.hostname)) return null;
+
+      // normalize path (remove extra slashes, trailing slash, and .git)
+      const parts = parsed.pathname
+        .replace(/\/+/g, "/")
+        .replace(/\/$/, "")
+        .replace(/\.git$/i, "")
+        .split("/")
+        .filter(Boolean);
+      //want exactly owner/repo
+      if (parts.length >= 2) {
+        return `${parts[0]}/${parts[1]}`;
       }
       return null;
     } catch (error) {
@@ -68,8 +93,17 @@ export default function Home() {
 
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    const params = extractRepoPathFromUrl(gitUrl);
-    handleGitFetch(`/api/github/pulls?repo=${params}`);
+    setError(null);
+    const repoPath = extractRepoPathFromUrl(gitUrl);
+    if (!repoPath) {
+      setError(
+        "Please enter a valid GitHub repo URL like https://github.com/owner/repo"
+      );
+      return;
+    }
+    await handleGitFetch(
+      `/api/github/pulls?repo=${encodeURIComponent(repoPath)}`
+    );
   }
 
   function handleSelectPR(pr: PullRequestType) {
@@ -82,7 +116,7 @@ export default function Home() {
     router.push(`/review/${params}/${selectedPR.number}`);
   }
 
-  const repoElements = pullRequests.map((repo) => (
+  const repoElements = (pullRequests ?? []).map((repo) => (
     <Repo
       key={repo.id}
       data={repo}
@@ -114,7 +148,7 @@ export default function Home() {
           <form onSubmit={handleSubmit}>
             <div className="flex-1">
               <label className="mb-1 block text-sm font-medium text-gray-7--">
-                GitHub respository URL
+                GitHub repository URL
               </label>
               <div className="relative">
                 <input
@@ -129,7 +163,7 @@ export default function Home() {
                 </span>
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Paste a repo URL to lood open pull requests.
+                Paste a repo URL to load open pull requests.
               </p>
             </div>
 

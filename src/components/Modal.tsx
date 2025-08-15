@@ -1,9 +1,21 @@
-import { ModalType } from "@/lib/types";
+import { ReviewModalProps } from "@/lib/types";
 import React from "react";
 import DiffFile from "./DiffFile";
+import FeedbackPanel from "@/components/FeedbackPanel";
 
-export default function Modal({ isOpen, onClose, children }: ModalType) {
-  //   const [modalTab, setModalTab] = React.useState<"diff" | "feedback">("diff");
+export default function Modal({
+  isOpen,
+  onClose,
+  modalFile,
+  modalTab,
+  setModalTab,
+  allChunks,
+  getFilename,
+  parseDiffLines,
+  selectedIds,
+  toggleSelected,
+  aiResponse,
+}: ReviewModalProps) {
   if (!isOpen) return null;
 
   const modalRef = React.useRef<HTMLDivElement | null>(null);
@@ -42,7 +54,55 @@ export default function Modal({ isOpen, onClose, children }: ModalType) {
         >
           &times;
         </button>
-        <div className="modal-children max-h-175 overflow-auto">{children}</div>
+        {/* <div className="modal-children max-h-175 overflow-auto">{children}</div> */}
+        {/* tabs */}
+        <div className="flex border-b mb-4 space-x-2">
+          <button
+            className={`px-4 py-2 rounded-t-md font-semibold transition-colors ${
+              modalTab === "diff"
+                ? "bg-white border border-b-0 border-blue-500 text-blue-700"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+            onClick={() => setModalTab("diff")}
+          >
+            🧾 Code Diff
+          </button>
+          <button
+            className={`px-4 py-2 rounded-t-md font-semibold transition-colors ${
+              modalTab === "feedback"
+                ? "bg-white border border-b-0 border-blue-500 text-blue-700"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+            onClick={() => setModalTab("feedback")}
+          >
+            💬 AI Feedback
+          </button>
+        </div>
+
+        {modalTab === "diff" ? (
+          <DiffFile
+            chunk={allChunks.find((chunk) => getFilename(chunk) === modalFile)!}
+            index={0}
+            getFilename={getFilename}
+            parseDiffLines={parseDiffLines}
+            isSelected={selectedIds.has(modalFile)}
+            onToggle={() => toggleSelected(modalFile)}
+            aiFeedback={aiResponse?.data[modalFile]}
+            modal={true}
+            toggleModal={() => {}}
+            previewOnly={false}
+          />
+        ) : (
+          <FeedbackPanel
+            aiFeedback={
+              aiResponse?.data[modalFile ?? ""] ?? {
+                potential_bugs_or_regressions: [],
+                security_issues: [],
+                best_practices: ["✅ No feedback found for this file."],
+              }
+            }
+          />
+        )}
       </div>
     </div>
   );
