@@ -35,10 +35,18 @@ export type AIFeedbackType = {
   recommendation: string;
   justification: string;
 };
-export type ModalType = {
+export type ReviewModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  children: React.ReactNode;
+  modalFile: string;
+  modalTab: "diff" | "feedback";
+  setModalTab: (tab: "diff" | "feedback") => void;
+  allChunks: string[];
+  getFilename: (chunk: string) => string;
+  parseDiffLines: (chunk: string) => any;
+  selectedIds: Set<string>;
+  toggleSelected: (id: string) => void;
+  aiResponse: any;
 };
 export type Line = {
   type: string;
@@ -56,4 +64,9 @@ export type DiffFileProps = {
   toggleModal: (name: string) => void;
   previewOnly?: boolean;
   hasSubmitted?: boolean;
+};
+export type PercentageBarProps = {
+  tokensUsed: number;
+  percentUsed: number;
+  inputBudget: number;
 };

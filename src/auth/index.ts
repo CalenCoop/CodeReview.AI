@@ -9,10 +9,5 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GITHUB_ID!,
       clientSecret: process.env.GITHUB_SECRET!,
     }),
-    // ...more providers
   ],
-  // callbacks, pages, session, etc. (optional)
-  // callbacks: {
-  //   async session({ session, token }) { return session; }
-  // }
 };
