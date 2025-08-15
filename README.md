@@ -1,5 +1,11 @@
 # CodeReview.AI
-<img width="500" height="300" alt="Screenshot 2025-08-14 at 7 21 15 PM" src="https://github.com/user-attachments/assets/68d9b977-8bdf-428c-9bae-d13b43dfe601" />
+
+<p>
+  <a href="https://codereviewai.vercel.app/">
+    <img src="public/codereview-thumbnail.gif" alt="CodeReview.AI demo" width="500" height="300"/>
+  </a>
+</p>
+
 
 Live demo - https://codereviewai.vercel.app/
 
