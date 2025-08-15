@@ -19,35 +19,24 @@ export const metadata: Metadata = {
   openGraph: {
     title: "CodeReview.ai",
     description: "AI-powered GitHub pull request reviews.",
-    url: siteUrl,
+    url: "https://codereviewai.vercel.app",
     siteName: "CodeReview.ai",
-    type: "website",
-    locale: "en_US",
     images: [
       {
-        url: `${siteUrl}/codereview-thumbnail.gif`,
+        url: "https://codereviewai.vercel.app/codereview-thumbnail.png",
         width: 1200,
         height: 630,
         alt: "CodeReview.ai Preview",
-        type: "image/gif",
-      },
-      {
-        url: `${siteUrl}/codereview-thumbnail.png`,
-        width: 1200,
-        height: 630,
-        alt: "CodeReview.ai Preview (static fallback)",
-        type: "image/png",
       },
     ],
+    locale: "en_US",
+    type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "CodeReview.ai",
     description: "AI-powered GitHub pull request reviews.",
-    images: [
-      `${siteUrl}/codereview-thumbnail.gif`,
-      `${siteUrl}/codereview-thumbnail.png`,
-    ],
+    images: ["https://codereviewai.vercel.app/codereview-thumbnail.png"],
   },
 };
 
