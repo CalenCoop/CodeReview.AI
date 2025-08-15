@@ -66,7 +66,7 @@ export default function DiffFile({
       <div
         className={`transition-colors duration-200 ease-in-out chunk-title flex justify-between `}
       >
-        <div onClick={() => toggleModal(filename)} className="w-90/100">
+        <div onClick={() => toggleModal(filename)} className="w-9/10">
           <div className="flex items-center space-x-1">
             {hasSubmitted && <span>✅</span>}
             <span className="text-sm font-mono text-gray-800">{filename}</span>
